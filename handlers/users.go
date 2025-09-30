@@ -55,7 +55,7 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Check for duplicate username
 	var existingUser models.User
-	result := db.DB.Where("username = ?", req.Username).First(&existingUser)
+	result := db.DB.Unscoped().Where("username = ?", req.Username).First(&existingUser)
 	if result.Error == nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
@@ -221,13 +221,13 @@ func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Find user in database
 	var user models.User
-	if db.DB.First(&user, userID).Error != nil {
+	if db.DB.Unscoped().First(&user, userID).Error != nil{
 		utils.SendError(w, "User not found", http.StatusNotFound)
 		return
 	}
 
 	// Delete user
-	if db.DB.Delete(&user).Error != nil {
+	if err := db.DB.Exec("DELETE FROM users WHERE id = ?", user.ID).Error; err != nil {
 		utils.SendError(w, "Failed to delete user", http.StatusInternalServerError)
 		return
 	}
