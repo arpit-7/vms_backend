@@ -13,6 +13,17 @@ func ValidateLoginRequest(username, password string) error {
 	return nil
 }
 
+// validate roles
+func ValidateRole(role string) error {
+	allowedRole := []string{"Basic User", "Area Admin", "admin"}
+	for _, r := range allowedRole {
+		if role == r {
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid role: must be one of 'Basic User', 'Area Admin', or 'admin'")
+}
+
 // ValidateCreateUserRequest validates user creation data
 func ValidateCreateUserRequest(username, password string, groupId int, areaName, role string) error {
 	if username == "" {

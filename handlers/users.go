@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"fmt"
 
 	"go-auth/db"
 	"go-auth/models"
@@ -50,6 +51,11 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate input
 	if err := utils.ValidateCreateUserRequest(req.Username, req.Password, req.GroupId, req.AreaName, req.Role); err != nil {
 		utils.SendError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	//validate role
+	if err := ValidateRole(req.Role); err != nil {
+		utils.SendError(w, err.Error(),http.StatusBadRequest)
 		return
 	}
 
@@ -149,6 +155,14 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// validate role if provided
+	if req.Role != "" {
+		if err := ValidateRole(req.Role);err !=nil {
+			utils.SendError(w, err.Error(),http.StatusBadRequest)
+			return
+		}
+	}
+
 	// Find user in database
 	var user models.User
 	if db.DB.First(&user, userID).Error != nil {
@@ -196,6 +210,16 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 		"message":        "User updated successfully!",
 		"updated_fields": len(updateData),
 	}, http.StatusOK)
+}
+// ValidateRole checks if the provided role is valid
+func ValidateRole(role string) error {
+	validRoles := []string{"admin", "user", "manager"} // Add your valid roles here
+	for _, r := range validRoles {
+		if role == r {
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid role: %s", role)
 }
 
 // DeleteUserHandler deletes a user
