@@ -1,0 +1,55 @@
+package utils
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
+// CreateViewGroupRequest structure
+type CreateViewGroupRequest struct {
+	ID                   string   `json:"id"`
+	Name                 string   `json:"name"`
+	GroupID              int      `json:"groupId"`
+	AreaName             string   `json:"areaName"`
+	IsHQ                 bool     `json:"isHQ"`
+	Cameras              []string `json:"cameras"`
+	AutoRotationInterval *int     `json:"autoRotationInterval,omitempty"`
+}
+
+// UpdateViewGroupRequest structure
+type UpdateViewGroupRequest struct {
+	Name                 string   `json:"name,omitempty"`
+	Cameras              []string `json:"cameras,omitempty"`
+	AutoRotationInterval *int     `json:"autoRotationInterval,omitempty"`
+}
+
+// ValidateCreateRequest validates and parses create view group request
+func ValidateCreateRequest(r *http.Request) (*CreateViewGroupRequest, error) {
+	var req CreateViewGroupRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, fmt.Errorf("invalid request body")
+	}
+
+	// Validate required fields
+	if req.ID == "" || req.Name == "" || req.GroupID == 0 || req.AreaName == "" {
+		return nil, fmt.Errorf("ID, name, groupId, and areaName are required")
+	}
+
+	// Initialize cameras array if nil
+	if req.Cameras == nil {
+		req.Cameras = []string{}
+	}
+
+	return &req, nil
+}
+
+// ValidateUpdateRequest validates and parses update view group request
+func ValidateUpdateRequest(r *http.Request) (*UpdateViewGroupRequest, error) {
+	var req UpdateViewGroupRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, fmt.Errorf("invalid request body")
+	}
+
+	return &req, nil
+}
