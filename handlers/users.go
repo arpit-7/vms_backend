@@ -54,7 +54,7 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//validate role
-	if err := ValidateRole(req.Role); err != nil {
+	if err := utils.ValidateRole(req.Role); err != nil {
 		utils.SendError(w, err.Error(),http.StatusBadRequest)
 		return
 	}
@@ -157,7 +157,7 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	// validate role if provided
 	if req.Role != "" {
-		if err := ValidateRole(req.Role);err !=nil {
+		if err := utils.ValidateRole(req.Role);err !=nil {
 			utils.SendError(w, err.Error(),http.StatusBadRequest)
 			return
 		}

@@ -12,7 +12,12 @@ func main() {
 	db.Connect()
 	
 	
-	db.DB.AutoMigrate(&models.User{}, &models.Token{})
+	db.DB.AutoMigrate(
+		&models.User{}, 
+		&models.Token{},
+		&models.ViewGroup{},
+		&models.ViewGroupAudit{},
+	)
 
 	// Authentication routes
 	http.HandleFunc("/auth", handlers.AuthHandler)
@@ -28,17 +33,25 @@ func main() {
 	http.HandleFunc("/tokens/generation", handlers.GenerateTokenHandler)
 	http.HandleFunc("/tokens/verify", handlers.VerifyTokenHandler)
 	http.HandleFunc("/verify", handlers.VerifyAndLoginHandler)
+
+	//view group routes
+	http.HandleFunc("/view-groups", handleViewGroups)  
+	http.HandleFunc("/view-groups/", handleSingleViewGroup) 
 	
-	log.Println("Server started at: http://localhost:8080")
-	log.Println("Available endpoints:")
-	log.Println("POST   /auth              - Login with username/password")
-	log.Println("POST   /users             - Create new user")
-	log.Println("GET    /users             - Get all users")
-	log.Println("PUT    /users/{id}        - Update user")
-	log.Println("DELETE /users/{id}        - Delete user")
-	log.Println("POST   /tokens/generation   - Generate login token")
-	log.Println("POST   /tokens/verify     - Verify token (API)")
-	log.Println("GET    /verify            - Verify token and login (Browser)")
+	//log.Println("Server started at: http://localhost:8080")
+	//log.Println("Available endpoints:")
+	//log.Println("POST   /auth              - Login with username/password")
+	//log.Println("POST   /users             - Create new user")
+	//log.Println("GET    /users             - Get all users")
+	//log.Println("PUT    /users/{id}        - Update user")
+	//log.Println("DELETE /users/{id}        - Delete user")
+	//log.Println("POST   /tokens/generation   - Generate login token")
+	//log.Println("POST   /tokens/verify     - Verify token (API)")
+	//log.Println("GET    /verify            - Verify token and login (Browser)")
+	//log.Println("POST   /view-groups       - Create view group") 
+	//log.Println("GET    /view-groups       - Get all view groups")  
+	//log.Println("PUT    /view-groups/{id}  - Update view group") 
+	//log.Println("DELETE /view-groups/{id}  - Delete view group")     
 	
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -66,5 +79,31 @@ func handleSingleUser(w http.ResponseWriter, r *http.Request) {
 		handlers.UpdateUserHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func handleViewGroups(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "POST":
+		handlers.CreateViewGroupHandler(w, r)
+	case "GET":
+		handlers.GetViewGroupsHandler(w, r)
+	case "OPTIONS":
+		handlers.CreateViewGroupHandler(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func handleSingleViewGroup(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		handlers.UpdateViewGroupHandler(w, r)
+	case "DELETE":
+		handlers.DeleteViewGroupHandler(w,r)
+	case "OPTIONS":
+		handlers.UpdateViewGroupHandler(w, r)
+	default:
+		http.Error(w, "Method not allowed",http.StatusMethodNotAllowed)
 	}
 }
