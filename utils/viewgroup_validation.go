@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-// CreateViewGroupRequest structure
 type CreateViewGroupRequest struct {
 	ID                   string   `json:"id"`
 	Name                 string   `json:"name"`
@@ -17,14 +16,14 @@ type CreateViewGroupRequest struct {
 	AutoRotationInterval *int     `json:"autoRotationInterval,omitempty"`
 }
 
-// UpdateViewGroupRequest structure
+
 type UpdateViewGroupRequest struct {
 	Name                 string   `json:"name,omitempty"`
 	Cameras              []string `json:"cameras,omitempty"`
 	AutoRotationInterval *int     `json:"autoRotationInterval,omitempty"`
 }
 
-// ValidateCreateRequest validates and parses create view group request
+// validates and parses create view group request
 func ValidateCreateRequest(r *http.Request) (*CreateViewGroupRequest, error) {
 	var req CreateViewGroupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -44,7 +43,7 @@ func ValidateCreateRequest(r *http.Request) (*CreateViewGroupRequest, error) {
 	return &req, nil
 }
 
-// ValidateUpdateRequest validates and parses update view group request
+//  validates and parses update view group request
 func ValidateUpdateRequest(r *http.Request) (*UpdateViewGroupRequest, error) {
 	var req UpdateViewGroupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

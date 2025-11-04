@@ -11,7 +11,7 @@ import (
 	"go-auth/models"
 )
 
-// GetUserFromSession retrieves user from session cookie
+//  user from session cookie
 func GetUserFromSession(r *http.Request) (*models.User, error) {
 	// Get session cookie
 	cookie, err := GetSessionCookie(r)
@@ -40,7 +40,7 @@ func GetUserFromSession(r *http.Request) (*models.User, error) {
 	return &user, nil
 }
 
-// CreateAuditRecord creates an audit record for view group changes
+// audit record for view group changes
 func CreateAuditRecord(viewGroupID, action, changedBy, changes string) {
 	audit := models.ViewGroupAudit{
 		ViewGroupID: viewGroupID,
@@ -61,7 +61,7 @@ func ParseViewGroupID(r *http.Request) (string, error) {
 	return viewGroupID, nil
 }
 
-// BuildViewGroupFromRequest creates a ViewGroup model from request
+
 func BuildViewGroupFromRequest(req *CreateViewGroupRequest, username string) *models.ViewGroup {
 	return &models.ViewGroup{
 		ID:                   req.ID,
@@ -78,7 +78,7 @@ func BuildViewGroupFromRequest(req *CreateViewGroupRequest, username string) *mo
 	}
 }
 
-// BuildUpdateData prepares update data map and change log from request
+
 func BuildUpdateData(req *UpdateViewGroupRequest, viewGroup *models.ViewGroup, username string) (map[string]interface{}, []string, error) {
 	updateData := make(map[string]interface{})
 	var changes []string
