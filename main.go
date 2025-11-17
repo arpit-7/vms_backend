@@ -17,6 +17,8 @@ func main() {
 		&models.Token{},
 		&models.ViewGroup{},
 		&models.ViewGroupAudit{},
+		&models.CustomMap{},
+		&models.CameraPosition{},
 	)
 
 	// Authentication routes
@@ -36,7 +38,11 @@ func main() {
 
 	//view group routes
 	http.HandleFunc("/view-groups", handleViewGroups)  
-	http.HandleFunc("/view-groups/", handleSingleViewGroup) 
+	http.HandleFunc("/view-groups/", handleSingleViewGroup)
+
+	//custom Map routes
+	http.HandleFunc("/custom-maps", handleCustomMaps)
+	http.HandleFunc("/custom-maps/", handleSingleCustomMap)
 	
 	//log.Println("Server started at: http://localhost:8080")
 	//log.Println("Available endpoints:")
@@ -105,5 +111,33 @@ func handleSingleViewGroup(w http.ResponseWriter, r *http.Request) {
 		handlers.UpdateViewGroupHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed",http.StatusMethodNotAllowed)
+	}
+}
+
+func handleCustomMaps(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "POST":
+		handlers.CreateCustomMapHandler(w,r)
+	case "GET":
+		handlers.GetCustomMapsHandler(w,r)
+	case "OPTIONS":
+		handlers.CreateCustomMapHandler(w,r)
+	default:
+		http.Error(w,"Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func handleSingleCustomMap(w http.ResponseWriter,r *http.Request) {
+	switch r.Method {
+	case "GET":
+		handlers.GetCustomMapHandler(w,r)
+	case "PUT":
+		handlers.UpdateCustomMapHandler(w,r)
+	case "DELETE":
+		handlers.DeleteCustomMapHandler(w,r)
+	case "OPTIONS":
+		handlers.UpdateCustomMapHandler(w,r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
