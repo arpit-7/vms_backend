@@ -21,6 +21,8 @@ type CreateCustomMapRequest struct {
 	TileURL     string                  `json:"tileUrlPattern,omitempty"`
 	StyleURL    string                  `json:"styleUrl,omitempty"`
 	Bounds      map[string]interface{}  `json:"bounds,omitempty"`
+	GroupID     int                     `json:"groupId"`   
+	AreaName    string                  `json:"areaName"`  
 	Cameras     []CameraPositionRequest `json:"cameras"`
 }
 
@@ -34,10 +36,42 @@ type CameraPositionRequest struct {
 	Range      int    `json:"range"`
 }
 
-// CreateCustomMapHandler creates a new custom map with cameras
+
+// GetCustomMapsHandler gets all maps filtered by user permissions
+func GetCustomMapsHandler(w http.ResponseWriter, r *http.Request) {
+	utils.SetCORSHeaders(w)
+	if r.Method == http.MethodOptions {
+		return
+	}
+
+	// Get user from session
+	user, err := utils.GetUserFromSession(r)
+	if err != nil {
+		utils.SendError(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Get maps filtered by user permissions
+	maps, err := utils.GetCustomMapsByUser(user)
+	if err != nil {
+		utils.SendError(w, "Failed to fetch maps", http.StatusInternalServerError)
+		return
+	}
+
+	utils.SendJSON(w, maps, http.StatusOK)
+}
+
+// CreateCustomMapHandler creates a new custom map with permission checks
 func CreateCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 	utils.SetCORSHeaders(w)
 	if r.Method == http.MethodOptions {
+		return
+	}
+
+	// Get user from session
+	user, err := utils.GetUserFromSession(r)
+	if err != nil {
+		utils.SendError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -48,9 +82,15 @@ func CreateCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Simple validation
+	// Validate required fields
 	if req.Name == "" {
 		utils.SendError(w, "Map name required", http.StatusBadRequest)
+		return
+	}
+
+	// Check permissions
+	if err := utils.CanCreateCustomMap(user, req.GroupID); err != nil {
+		utils.SendError(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
@@ -72,6 +112,10 @@ func CreateCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 		TileURL:     req.TileURL,
 		StyleURL:    req.StyleURL,
 		BoundsJSON:  boundsJSON,
+		GroupID:     req.GroupID,
+		AreaName:    req.AreaName,
+		CreatedBy:   user.Username, // Track who created it
+		UpdatedBy:   user.Username,
 	}
 
 	if err := db.DB.Create(&customMap).Error; err != nil {
@@ -100,22 +144,17 @@ func CreateCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 	}, http.StatusCreated)
 }
 
-// GetCustomMapsHandler gets all maps
-func GetCustomMapsHandler(w http.ResponseWriter, r *http.Request) {
+// GetCustomMapHandler gets one map with permission check
+func GetCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 	utils.SetCORSHeaders(w)
 	if r.Method == http.MethodOptions {
 		return
 	}
 
-	var maps []models.CustomMap
-	db.DB.Find(&maps)
-	utils.SendJSON(w, maps, http.StatusOK)
-}
-
-// GetCustomMapHandler gets one map with cameras
-func GetCustomMapHandler(w http.ResponseWriter, r *http.Request) {
-	utils.SetCORSHeaders(w)
-	if r.Method == http.MethodOptions {
+	// Get user from session
+	user, err := utils.GetUserFromSession(r)
+	if err != nil {
+		utils.SendError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -131,6 +170,12 @@ func GetCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if user has access to this map
+	if user.Role != "admin" && customMap.GroupID != user.GroupId {
+		utils.SendError(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
 	var cameras []models.CameraPosition
 	db.DB.Where("custom_map_id = ?", mapID).Find(&cameras)
 
@@ -140,10 +185,17 @@ func GetCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 	}, http.StatusOK)
 }
 
-// UpdateCustomMapHandler updates a map
+// UpdateCustomMapHandler updates a map with permission checks
 func UpdateCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 	utils.SetCORSHeaders(w)
 	if r.Method == http.MethodOptions {
+		return
+	}
+
+	// Get user from session
+	user, err := utils.GetUserFromSession(r)
+	if err != nil {
+		utils.SendError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -159,10 +211,16 @@ func UpdateCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if exists
+	// Check if map exists
 	var existing models.CustomMap
 	if err := db.DB.First(&existing, mapID).Error; err != nil {
 		utils.SendError(w, "Map not found", http.StatusNotFound)
+		return
+	}
+
+	// Check permissions
+	if err := utils.CanUpdateCustomMap(user, &existing); err != nil {
+		utils.SendError(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
@@ -183,11 +241,14 @@ func UpdateCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 		TileURL:     req.TileURL,
 		StyleURL:    req.StyleURL,
 		BoundsJSON:  boundsJSON,
+		GroupID:     req.GroupID,
+		AreaName:    req.AreaName,
+		UpdatedBy:   user.Username, // Track who updated it
 	})
 
 	// Delete old cameras and add new ones
 	db.DB.Where("custom_map_id = ?", mapID).Delete(&models.CameraPosition{})
-	
+
 	for _, cam := range req.Cameras {
 		cameraPos := models.CameraPosition{
 			CustomMapID: mapID,
@@ -207,10 +268,17 @@ func UpdateCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 	}, http.StatusOK)
 }
 
-// DeleteCustomMapHandler deletes a map
+// DeleteCustomMapHandler deletes a map with permission checks
 func DeleteCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 	utils.SetCORSHeaders(w)
 	if r.Method == http.MethodOptions {
+		return
+	}
+
+	// Get user from session
+	user, err := utils.GetUserFromSession(r)
+	if err != nil {
+		utils.SendError(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -223,6 +291,12 @@ func DeleteCustomMapHandler(w http.ResponseWriter, r *http.Request) {
 	var customMap models.CustomMap
 	if err := db.DB.First(&customMap, mapID).Error; err != nil {
 		utils.SendError(w, "Map not found", http.StatusNotFound)
+		return
+	}
+
+	// Check permissions
+	if err := utils.CanDeleteCustomMap(user, &customMap); err != nil {
+		utils.SendError(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
