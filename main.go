@@ -19,6 +19,7 @@ func main() {
 		&models.ViewGroupAudit{},
 		&models.CustomMap{},
 		&models.CameraPosition{},
+		&models.UserPreference{},
 	)
 
 	// Authentication routes
@@ -43,6 +44,9 @@ func main() {
 	//custom Map routes
 	http.HandleFunc("/custom-maps", handleCustomMaps)
 	http.HandleFunc("/custom-maps/", handleSingleCustomMap)
+
+	// User preference routes
+    http.HandleFunc("/user-preferences/default-view", handlers.HandleDefaultView)
 	
 	//log.Println("Server started at: http://localhost:8080")
 	//log.Println("Available endpoints:")

@@ -8,6 +8,33 @@ import (
 	"errors"
 )
 
+type CameraMetadata struct {
+    ID      string `json:"id"`
+    Name    string `json:"name"`
+    GroupID int    `json:"groupId"`
+}
+
+type CameraMetadataArray []CameraMetadata
+
+func (c *CameraMetadataArray) Scan(value interface{}) error {
+    if value == nil {
+        *c = []CameraMetadata{}
+        return nil
+    }
+    bytes, ok := value.([]byte)
+    if !ok {
+        return errors.New("failed to unmarshal CameraMetadataArray value")
+    }
+    return json.Unmarshal(bytes, c)
+}
+
+func (c CameraMetadataArray) Value() (driver.Value, error) {
+    if len(c) == 0 {
+        return "[]", nil
+    }
+    return json.Marshal(c)
+}
+
 type StringArray []string
 
 func (s *StringArray) Scan(value interface{}) error {
@@ -37,12 +64,14 @@ type ViewGroup struct {
 	AreaName             string      `json:"areaName"`
     IsHQ                 bool        `gorm:"default:false" json:"isHQ"`
 	Cameras              StringArray `gorm:"type:json" json:"cameras"`
+	CamerasMetadata      CameraMetadataArray `gorm:"type:json" json:"camerasMetadata"` 
 	AutoRotationInterval *int        `json:"autoRotationInterval,omitempty"`
 	CreatedBy            string      `json:"createdBy"`
 	UpdatedBy            string      `json:"updatedBy,omitempty"`
 	CreatedAt            time.Time   `json:"createdAt"`
 	UpdatedAt            time.Time   `json:"updatedAt"`
 }
+
 
 //store trail of changes
 
@@ -53,3 +82,4 @@ type ViewGroupAudit struct {
 	ChangedBy   string `json:"changedBy"`
 	Changes     string `gorm:"type:json" json:"changes"` //json styring of what changed 
 }
+

@@ -63,57 +63,85 @@ func ParseViewGroupID(r *http.Request) (string, error) {
 
 
 func BuildViewGroupFromRequest(req *CreateViewGroupRequest, username string) *models.ViewGroup {
-	return &models.ViewGroup{
-		ID:                   req.ID,
-		Name:                 req.Name,
-		GroupID:              req.GroupID,
-		AreaName:             req.AreaName,
-		IsHQ:                 req.IsHQ,
-		Cameras:              req.Cameras,
-		AutoRotationInterval: req.AutoRotationInterval,
-		CreatedBy:            username,
-		UpdatedBy:            username,
-		CreatedAt:            time.Now(),
-		UpdatedAt:            time.Now(),
-	}
+    // Build cameras metadata from request
+    camerasMetadata := make([]models.CameraMetadata, len(req.CamerasMetadata))
+    for i, meta := range req.CamerasMetadata {
+        camerasMetadata[i] = models.CameraMetadata{
+            ID:      meta.ID,
+            Name:    meta.Name,
+            GroupID: meta.GroupID,
+        }
+    }
+
+    return &models.ViewGroup{
+        ID:                   req.ID,
+        Name:                 req.Name,
+        GroupID:              req.GroupID,
+        AreaName:             req.AreaName,
+        IsHQ:                 req.IsHQ,
+        Cameras:              req.Cameras,
+        CamerasMetadata:      camerasMetadata, 
+        AutoRotationInterval: req.AutoRotationInterval,
+        CreatedBy:            username,
+        UpdatedBy:            username,
+        CreatedAt:            time.Now(),
+        UpdatedAt:            time.Now(),
+    }
 }
 
 
 func BuildUpdateData(req *UpdateViewGroupRequest, viewGroup *models.ViewGroup, username string) (map[string]interface{}, []string, error) {
-	updateData := make(map[string]interface{})
-	var changes []string
+    updateData := make(map[string]interface{})
+    var changes []string
 
-	// Update name if provided and different
-	if req.Name != "" && req.Name != viewGroup.Name {
-		updateData["name"] = req.Name
-		changes = append(changes, fmt.Sprintf(`"name":"%s"`, req.Name))
-	}
+    // Update name if provided and different
+    if req.Name != "" && req.Name != viewGroup.Name {
+        updateData["name"] = req.Name
+        changes = append(changes, fmt.Sprintf(`"name":"%s"`, req.Name))
+    }
 
-	// Update cameras if provided
-	if req.Cameras != nil {
-		// Convert to JSON string for database storage
-		camerasJSON, err := json.Marshal(req.Cameras)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to serialize cameras")
-		}
+    // Update cameras if provided
+    if req.Cameras != nil {
+        camerasJSON, err := json.Marshal(req.Cameras)
+        if err != nil {
+            return nil, nil, fmt.Errorf("failed to serialize cameras")
+        }
+        updateData["cameras"] = string(camerasJSON)
+        changes = append(changes, fmt.Sprintf(`"cameras":%s`, string(camerasJSON)))
+    }
 
-		updateData["cameras"] = string(camerasJSON)
-		changes = append(changes, fmt.Sprintf(`"cameras":%s`, string(camerasJSON)))
-	}
+    // ← ADD THIS BLOCK - Update cameras metadata if provided
+    if req.CamerasMetadata != nil {
+        camerasMetadata := make([]models.CameraMetadata, len(req.CamerasMetadata))
+        for i, meta := range req.CamerasMetadata {
+            camerasMetadata[i] = models.CameraMetadata{
+                ID:      meta.ID,
+                Name:    meta.Name,
+                GroupID: meta.GroupID,
+            }
+        }
+        
+        metadataJSON, err := json.Marshal(camerasMetadata)
+        if err != nil {
+            return nil, nil, fmt.Errorf("failed to serialize cameras metadata")
+        }
+        updateData["cameras_metadata"] = string(metadataJSON)
+        changes = append(changes, fmt.Sprintf(`"camerasMetadata":%s`, string(metadataJSON)))
+    }
 
-	// Always update auto_rotation_interval (even if null)
-	updateData["auto_rotation_interval"] = req.AutoRotationInterval
-	if req.AutoRotationInterval != nil {
-		changes = append(changes, fmt.Sprintf(`"autoRotationInterval":%d`, *req.AutoRotationInterval))
-	} else {
-		changes = append(changes, `"autoRotationInterval":null`)
-	}
+    // Always update auto_rotation_interval (even if null)
+    updateData["auto_rotation_interval"] = req.AutoRotationInterval
+    if req.AutoRotationInterval != nil {
+        changes = append(changes, fmt.Sprintf(`"autoRotationInterval":%d`, *req.AutoRotationInterval))
+    } else {
+        changes = append(changes, `"autoRotationInterval":null`)
+    }
 
-	// Always update metadata
-	updateData["updated_by"] = username
-	updateData["updated_at"] = time.Now()
+    // Always update metadata
+    updateData["updated_by"] = username
+    updateData["updated_at"] = time.Now()
 
-	return updateData, changes, nil
+    return updateData, changes, nil
 }
 
 // FormatChangesJSON formats changes array into JSON string

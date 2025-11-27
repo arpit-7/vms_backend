@@ -13,6 +13,7 @@ type CreateViewGroupRequest struct {
 	AreaName             string   `json:"areaName"`
 	IsHQ                 bool     `json:"isHQ"`
 	Cameras              []string `json:"cameras"`
+	CamerasMetadata      []CameraMetadataRequest `json:"camerasMetadata"`
 	AutoRotationInterval *int     `json:"autoRotationInterval,omitempty"`
 }
 
@@ -20,7 +21,14 @@ type CreateViewGroupRequest struct {
 type UpdateViewGroupRequest struct {
 	Name                 string   `json:"name,omitempty"`
 	Cameras              []string `json:"cameras,omitempty"`
+	CamerasMetadata      []CameraMetadataRequest `json:"camerasMetadata,omitempty"`
 	AutoRotationInterval *int     `json:"autoRotationInterval,omitempty"`
+}
+
+type CameraMetadataRequest struct {
+    ID      string `json:"id"`
+    Name    string `json:"name"`
+    GroupID int    `json:"groupId"`
 }
 
 // validates and parses create view group request
